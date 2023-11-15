@@ -7,15 +7,12 @@ class BackSwipePage extends StatefulWidget {
 
 class BackSwipePageState extends State<BackSwipePage> {
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return Scaffold(
         body: Center(
-            child: Container(
-        width: 1000,
-        height: 500,
-        color: Colors.green,
-        child: const Text("lets swipe"),
-      ),
-    ));
+            child: Icon(
+      Icons.heart_broken,
+      size: 200,
+    )));
   }
 }

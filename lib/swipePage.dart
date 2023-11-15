@@ -7,15 +7,13 @@ class SwipePage extends StatefulWidget {
 
 class SwipePageState extends State<SwipePage> {
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return Scaffold(
         body: Center(
-
       child: Container(
-        width: 1000,
-        height: 500,
+        width: 300,
+        height: 550,
         color: Colors.blue,
-        child: const Text("lets swipe"),
       ),
     ));
   }

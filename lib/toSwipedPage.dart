@@ -10,13 +10,12 @@ class ToSwipePageState extends State<ToSwipePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Center(
-            child: Expanded(
       child: Container(
         width: 1000,
         height: 500,
         color: Colors.red,
         child: const Text("swiped"),
       ),
-    )));
+    ));
   }
 }

@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 
-class SwipePage extends StatefulWidget {
+class BackSwipePage extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() => SwipePageState();
+  State<StatefulWidget> createState() => BackSwipePageState();
 }
 
-class SwipePageState extends State<SwipePage> {
+class BackSwipePageState extends State<BackSwipePage> {
   @override
   Widget build(BuildContext context) { 
     return Scaffold(
         body: Center(
-
-      child: Container(
+            child: Container(
         width: 1000,
         height: 500,
-        color: Colors.blue,
+        color: Colors.green,
         child: const Text("lets swipe"),
       ),
     ));

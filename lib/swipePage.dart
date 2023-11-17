@@ -1,20 +1,28 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 
-class SwipePage extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() => SwipePageState();
-}
 
-class SwipePageState extends State<SwipePage> {
+class SwipePage extends StatelessWidget {
+  int _colorSeed = 0;
+
+  SwipePage(this._colorSeed);
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: Center(
-      child: Container(
+    return Center(
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Container(
         width: 300,
         height: 550,
-        color: Colors.blue,
+        color: Color.fromRGBO(
+          (_colorSeed * 100) % 255, 
+          (_colorSeed + 100) % 255,
+          (_colorSeed * 100 + 150) % 255,
+          1),
       ),
-    ));
+      )
+    );
   }
 }

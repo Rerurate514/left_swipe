@@ -1,9 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:left_swipe/backSwipe.dart';
-import 'package:left_swipe/swipePage.dart';
-import 'package:left_swipe/toSwipedPage.dart';
+import 'package:left_swipe/swipeWidget.dart';
 import 'dart:math' as math;
 
 void main() {
@@ -22,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.deepPurple,
-            background: Color.fromRGBO(0, 0, 0, 0)),
+            background: const Color.fromRGBO(0, 0, 0, 0)),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -40,129 +38,57 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late PageController _pageController;
-  int _selectPageIndex = 0;
-
-  var random = math.Random();
-
-  List<Widget> _pages = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: _selectPageIndex);
-    _pages = List.generate(
-        5, (index) => _SwipeView(_onPageChanged, random.nextInt(1000)));
-  }
-
-  
-  void _onPageChanged() {
-    setState(() {  
-      _selectPageIndex++;
-    });
-    
-
-    int pagesLen = _pages.length;
-    if(_selectPageIndex >= _pages.length - 2) {
-      _selectPageIndex = 0;
-      List<Widget> newPages = [_pages[pagesLen - 2], _pages[pagesLen - 1]];
-      _pages = List.generate(5, (i) => _SwipeView(_onPageChanged, random.nextInt(1000)));
-      newPages += _pages;
-      _pages = newPages;
-    }
-
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => Stack(
-          alignment: Alignment.center,
-          children: <Widget>[
-            _pages[_selectPageIndex + 1],
-            _pages[_selectPageIndex],
-          ],
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = 0.0;
-          const end = 1.0;
-          var tween = Tween<double>(begin: begin, end: end);
-          var tweenAnimation = tween.animate(animation);
-
-          final resultWidget = Container(
-            child: child,
-          );
-
-          return resultWidget;
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          _pages[_selectPageIndex + 1],
-          _pages[_selectPageIndex],
-        ],
-      ),
-    );
+    return PositionedWidget();
   }
 }
 
-class _SwipeView extends StatefulWidget {
-  late Function onChangedCallback;
-  late int colorSeed;
-
-  _SwipeView(this.onChangedCallback, this.colorSeed);
-
+class PositionedWidget extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() =>
-      _SwipeViewState(onChangedCallback, colorSeed);
+  State<StatefulWidget> createState() => PositionedWidgetState();
 }
 
-class _SwipeViewState extends State<_SwipeView> {
-  late AnimationController _animationController;
-  late PageController _pageController;
-  int _selectPageIndex = 1;
-
-  final Function _onChangedCallback;
-  final int _colorSeed;
-
-  _SwipeViewState(this._onChangedCallback, this._colorSeed);
-
-  List<Widget> _pages = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: _selectPageIndex);
-    _pages = [BackSwipePage(), SwipePage(_colorSeed), ToSwipePage()];
-  }
-
-  void _onPageChanged(int indexArg) {
-    setState(() {
-      _selectPageIndex = indexArg;
-      _pageController.animateToPage(
-        indexArg,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutSine,
-      );
-    });
-    _onChangedCallback();
-  }
+class PositionedWidgetState extends State<PositionedWidget> {
+  double _currentPosX = 0.0;
+  double _angle = 0.0;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: _pages,
-        //scrollBehavior: CustomScrollBehavior(),
-      ),
+    return Stack(
+      children: [
+        Image.asset("images/sample2.jpeg"),
+        Positioned(
+          left: _currentPosX,
+          child: GestureDetector(
+              onPanUpdate: (details) => {
+                    setState(() {
+                      _currentPosX = details.localPosition.dx -
+                          (MediaQuery.of(context).size.width / 2);
+                      _angle += _currentPosX / 20000;
+                    })
+                  },
+              onPanEnd: (details) => {
+                    setState(() {
+                      // _currentPosX = 0;
+                      // _angle = 0;
+                    })
+                  },
+              child: Transform.rotate(
+                angle: _angle,
+                child: Card(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(64)),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      color: Colors.white,
+                      child: Image.asset("images/sample.jpg"),
+                    )),
+              )),
+        )
+        //
+      ],
     );
   }
 }
@@ -202,4 +128,3 @@ class CustomScrollBehavior extends ScrollBehavior {
     );
   }
 }
-

@@ -13,6 +13,7 @@ class BackSwipePageState extends State<BackSwipePage> {
             child: Icon(
       Icons.heart_broken,
       size: 200,
+      color: Colors.purple,
     )));
   }
 }

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:left_swipe/backSwipe.dart';
 import 'package:left_swipe/swipePage.dart';
 import 'package:left_swipe/toSwipedPage.dart';
-import 'dart:math' as math; 
+import 'dart:math' as math;
 
 void main() {
   runApp(const MyApp());
@@ -52,17 +52,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _selectPageIndex);
-    _pages = List.generate(30, (index) => _SwipeView(_onPageChanged, random.nextInt(1000)));
+    _pages = List.generate(
+        5, (index) => _SwipeView(_onPageChanged, random.nextInt(1000)));
   }
 
+  
   void _onPageChanged() {
-    print("i = $_selectPageIndex");
-
-    setState(() {
+    setState(() {  
       _selectPageIndex++;
-      if (_selectPageIndex >= _pages.length ||
-          _selectPageIndex >= _pages.length - 1) _selectPageIndex = 0;
     });
+    
+
+    int pagesLen = _pages.length;
+    if(_selectPageIndex >= _pages.length - 2) {
+      _selectPageIndex = 0;
+      List<Widget> newPages = [_pages[pagesLen - 2], _pages[pagesLen - 1]];
+      _pages = List.generate(5, (i) => _SwipeView(_onPageChanged, random.nextInt(1000)));
+      newPages += _pages;
+      _pages = newPages;
+    }
 
     Navigator.push(
       context,
@@ -80,13 +88,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           var tween = Tween<double>(begin: begin, end: end);
           var tweenAnimation = tween.animate(animation);
 
-          return Opacity(
-            opacity: tweenAnimation.value,
-            child: ScaleTransition(
-              child: child,
-              scale: animation,
-            ),
+          final resultWidget = Container(
+            child: child,
           );
+
+          return resultWidget;
         },
       ),
     );
@@ -113,7 +119,8 @@ class _SwipeView extends StatefulWidget {
   _SwipeView(this.onChangedCallback, this.colorSeed);
 
   @override
-  State<StatefulWidget> createState() => _SwipeViewState(onChangedCallback, colorSeed);
+  State<StatefulWidget> createState() =>
+      _SwipeViewState(onChangedCallback, colorSeed);
 }
 
 class _SwipeViewState extends State<_SwipeView> {
@@ -154,6 +161,7 @@ class _SwipeViewState extends State<_SwipeView> {
         controller: _pageController,
         onPageChanged: _onPageChanged,
         children: _pages,
+        //scrollBehavior: CustomScrollBehavior(),
       ),
     );
   }
@@ -168,3 +176,30 @@ class MyCustomScrollBehavior extends MaterialScrollBehavior {
         // etc.
       };
 }
+
+class CustomScrollBehavior extends ScrollBehavior {
+  @override
+  Widget buildViewportChrome(
+      BuildContext context, Widget child, AxisDirection axisDirection) {
+    return child;
+  }
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics();
+  }
+
+  @override
+  Widget buildScrollbar(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    return Scrollbar(
+      child: child,
+      controller: details.controller,
+      showTrackOnHover: true,
+      radius: Radius.circular(20),
+      interactive: true,
+      notificationPredicate: (notification) => true,
+    );
+  }
+}
+

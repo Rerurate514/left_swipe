@@ -8,7 +8,7 @@ class ToSwipePage extends StatefulWidget {
 class ToSwipePageState extends State<ToSwipePage> {
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return const  Scaffold(
         body: Center(
       child: Icon(Icons.favorite,size: 200, color: Colors.pink,)
     ));

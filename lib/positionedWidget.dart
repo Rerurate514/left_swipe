@@ -142,7 +142,7 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
   }
 
   Future<void> _initPosXInEase() async {
-    _posInitializer.initValue(_currentPosX).listen((newValueArg) {
+    _posInitializer.doEaseInOutStream(_currentPosX).listen((newValueArg) {
       setState(() {
         _currentPosX = newValueArg;
       });
@@ -150,7 +150,7 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
   }
 
   Future<void> _initAngleInEase() async {
-    _angleInitializer.initValue(_angle).listen((newValueArg) {
+    _angleInitializer.doEaseInOutStream(_angle).listen((newValueArg) {
       setState(() {
         _angle = newValueArg;
       });
@@ -196,7 +196,7 @@ class EaseInOutInitializer {
   late final double _initValue;
   late final double _needAllTimeSec;
   late final int _dt;
-  final int _PARTITION_VALUE = 32;
+  final int _PARTITION_VALUE = 32;//ここの値が高いほどアニメーションが滑らかになる。
 
   double _beforeEaseValue = 0.0;
 
@@ -207,7 +207,7 @@ class EaseInOutInitializer {
     _dt = (_needAllTimeSec / _PARTITION_VALUE * 1000).toInt();
   }
 
-  Stream<double> initValue(double currentValueArg) async* {
+  Stream<double> doEaseInOutStream(double currentValueArg) async* {
     for(final newValueArg in _generateEaseInOut(currentValueArg)){
       await Future.delayed(Duration(milliseconds: _dt));
       yield newValueArg;
@@ -218,16 +218,15 @@ class EaseInOutInitializer {
     final double delta = currentValueArg - _initValue;
     final double dx = delta / _PARTITION_VALUE;
     final double dt = _dt / 1000;
-    final int _EASE_ADJUST_VALUE = 33;
+    final int EASE_ADJUST_VALUE = _PARTITION_VALUE;
 
     double dtSum = 0.0;
     double result = currentValueArg;
     _beforeEaseValue = 0.0;
 
     for (int i = 0; i < _PARTITION_VALUE; i++, dtSum += dt) {
-      var easeDelta = _calcEaseDelta(dtSum) * _EASE_ADJUST_VALUE;
+      var easeDelta = _calcEaseDelta(dtSum) * EASE_ADJUST_VALUE;
       result -= dx * easeDelta;
-      print("$result -= $dx * $easeDelta;");
       yield result;
     }
   }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:async';
 
+import './easeInOutAnimationGenerator.dart';
+import './widgetExitAnimationController.dart';
+
 class PositionedWidgetStack extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => PositionedWidgetStackState();
@@ -10,7 +13,6 @@ class PositionedWidgetStack extends StatefulWidget {
 
 class PositionedWidgetStackState extends State<PositionedWidgetStack> {
   var random = math.Random();
-
   List<Widget> _pages = [];
 
   int _selectPageIndex = 0;
@@ -30,9 +32,8 @@ class PositionedWidgetStackState extends State<PositionedWidgetStack> {
 
     _updatePagesForLoop();
 
-    //HACK
     Future.delayed(
-        const Duration(milliseconds: 1),
+        const Duration(milliseconds: 100),
         () => {
               Navigator.push(
                 context,
@@ -47,11 +48,17 @@ class PositionedWidgetStackState extends State<PositionedWidgetStack> {
                   ),
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) {
-                    final resultWidget = Container(
+                    const begin = 0.0;
+                    const end = 1.0;
+                    const curve = Curves.easeInOutQuart;
+
+                    var opacityTween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                    var opacityAnimation = animation.drive(opacityTween);
+
+                    return FadeTransition(
+                      opacity: opacityAnimation,
                       child: child,
                     );
-
-                    return resultWidget;
                   },
                 ),
               )
@@ -94,8 +101,10 @@ class _PositionedWidget extends StatefulWidget {
 }
 
 class _PositionedWidgetState extends State<_PositionedWidget> {
-  final int _ANGLE_ADJUST_VALUE = 20000; //二万だと結構回転する角度が良い感じになる
+  final int _ANGLE_ADJUST_VALUE = 10000; //二万だと結構回転する角度が良い感じになる
   final int _SWIPE_VELOCITY_LIMIT = 1000; //1000ぐらいで画面遷移するスワイプ速度限界がちょうどいい感じになる
+
+  final double _INIT_ANIMATE_SEC = 1.0;
 
   double _currentPosX = 0.0;
   double _angle = 0.0;
@@ -105,17 +114,21 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
   late final int _colorSeed;
   late final Function _onChangedCallback;
 
-  final _posInitializer = EaseInOutInitializer(0, 1);
-  final _angleInitializer = EaseInOutInitializer(0, 1);
+  late final _posInitializer = EaseInOutAnimationGenerator(0,_INIT_ANIMATE_SEC,256);
+  late final _angleInitializer = EaseInOutAnimationGenerator(0,_INIT_ANIMATE_SEC,256);
+
+  late final CancelableFuture<void> _cancelableFutures = CancelableFuture([_initPosXInEase(), _initAngleInEase()]);
 
   _PositionedWidgetState(this._colorSeed, this._onChangedCallback);
 
   void _onPanUpdateFunc(DragUpdateDetails details) {
+    _cancelableFutures.cancel();
     setState(() {
       _currentPosX =
           details.localPosition.dx - (MediaQuery.of(context).size.width / 2);
 
-      _angle += _currentPosX / _ANGLE_ADJUST_VALUE;
+      if(_angle.abs() < 1) _angle += _currentPosX / _ANGLE_ADJUST_VALUE;
+      
     });
   }
 
@@ -126,19 +139,18 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
 
     if (details.velocity.pixelsPerSecond.dx.abs() > _SWIPE_VELOCITY_LIMIT) {
       _onChangedCallback();
+      _doExitAnimation(details);
     } else {
-
-
-      await Future.wait([
-        _initPosXInEase(),
-        _initAngleInEase()
-      ]);
-        
-      // await Future.wait([
-      //   _initPosXInEase(),
-      //   _initAngleInEase()
-      // ]);
+      await Future.wait(_cancelableFutures.futures);
     }
+  }
+
+  Future<void> _doExitAnimation(DragEndDetails dragEndDetailsArg) async {
+    WidgetExitAnimationController widgetExitAnimationController = 
+      WidgetExitAnimationController(dragEndDetailsArg, _angle, _currentPosX);
+    List streamList = widgetExitAnimationController.generateExitAnimationIterable();
+
+    Future.wait([_doExitAnimationInPos(streamList),_doExitAnimationInAngle(streamList)]);
   }
 
   Future<void> _initPosXInEase() async {
@@ -153,6 +165,22 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
     _angleInitializer.doEaseInOutStream(_angle).listen((newValueArg) {
       setState(() {
         _angle = newValueArg;
+      });
+    });
+  }
+
+  Future<void> _doExitAnimationInPos(List streamListArg) async {
+    streamListArg[0].listen((newCoodinateArg){
+      setState(() {
+        _currentPosX = newCoodinateArg;
+      });
+    });
+  }
+
+  Future<void> _doExitAnimationInAngle(List streamListArg) async {
+    streamListArg[1].listen((newAngleArg){
+      setState(() {
+        _angle = newAngleArg;
       });
     });
   }
@@ -192,65 +220,14 @@ class _PositionedWidgetState extends State<_PositionedWidget> {
   }
 }
 
-class EaseInOutInitializer {
-  late final double _initValue;
-  late final double _needAllTimeSec;
-  late final int _dt;
-  final int _PARTITION_VALUE = 32;//ここの値が高いほどアニメーションが滑らかになる。
+class CancelableFuture<T>{
+  final Iterable<Future<T>> _futures;
+  Iterable<Future<T>> get futures => futures;
 
-  double _beforeEaseValue = 0.0;
+  final Completer<void> _cancelCompleter = Completer<void>();
 
-  EaseInOutInitializer(
-    this._initValue,
-    this._needAllTimeSec,
-  ){
-    _dt = (_needAllTimeSec / _PARTITION_VALUE * 1000).toInt();
-  }
+  CancelableFuture(Iterable<Future<T>> futuresArg) : _futures = futuresArg;
 
-  Stream<double> doEaseInOutStream(double currentValueArg) async* {
-    for(final newValueArg in _generateEaseInOut(currentValueArg)){
-      await Future.delayed(Duration(milliseconds: _dt));
-      yield newValueArg;
-    }
-  }
-
-  Iterable<double> _generateEaseInOut(double currentValueArg) sync* {
-    final double delta = currentValueArg - _initValue;
-    final double dx = delta / _PARTITION_VALUE;
-    final double dt = _dt / 1000;
-    final int EASE_ADJUST_VALUE = _PARTITION_VALUE;
-
-    double dtSum = 0.0;
-    double result = currentValueArg;
-    _beforeEaseValue = 0.0;
-
-    for (int i = 0; i < _PARTITION_VALUE; i++, dtSum += dt) {
-      var easeDelta = _calcEaseDelta(dtSum) * EASE_ADJUST_VALUE;
-      result -= dx * easeDelta;
-      yield result;
-    }
-  }
-
-  /// 0.0 < t < 1.0
-  double _calcEaseDelta(double t) {
-    if (t < 0.0 || t > 1.0){
-      throw ArgumentError(
-          "Failed to invalid value in _calcEaseDelta method, current [t] => $t, valid range = 0.0 < t < 1.0");
-    }
-    double easeValue = _easeInOut(t);
-    double result = easeValue - _beforeEaseValue;
-    _beforeEaseValue = easeValue;
-    return result;
-  }
-
-  /// 0.0 < t < 1.0
-  double _easeInOut(double t) {
-    if (t < 0.0 || t > 1.0){
-      throw ArgumentError(
-          "Failed to invalid value in _easeInOut method, current [t] => $t, valid range = 0.0 < t < 1.0");
-    }
-    double result =
-        t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-    return result;
-  }
+  void cancel() => _cancelCompleter.complete();
 }
+

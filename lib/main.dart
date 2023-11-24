@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:left_swipe/swipeWidget.dart';
-import 'package:left_swipe/positionedWidget.dart';
+import 'package:left_swipe/swipe_widget/positionedWidget.dart';
 import 'dart:math' as math;
 
 void main() {
